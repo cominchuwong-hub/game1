@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐱 ระบบกู้คืนข้อมูล 6 หลัก - เซิร์ฟเวอร์</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh; display: flex; justify-content: center; align-items: center;
+            color: #fff; padding: 20px;
+        }
+        .container {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px; padding: 30px;
+            max-width: 550px; width: 100%;
+            box-shadow: 0 0 60px rgba(138,43,226,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        h1 { text-align: center; font-size: 28px; margin-bottom: 5px; }
+        h2 { text-align: center; color: #f5a623; font-size: 16px; margin-bottom: 20px; font-weight: normal; }
+        .tabs { display: flex; gap: 0; margin-bottom: 20px; }
+        .tab {
+            flex:1; padding: 10px; text-align: center; cursor: pointer; transition: 0.3s;
+            border: 2px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: #aaa;
+            font-weight: bold; font-size: 15px;
+        }
+        .tab:first-child { border-radius: 10px 0 0 10px; }
+        .tab:last-child { border-radius: 0 10px 10px 0; }
+        .tab.active { background: rgba(245,87,108,0.2); border-color: #f5576c; color: #fff; }
+        .section { display: none; }
+        .section.active { display: block; }
+        label { display: block; font-size: 13px; color: #ccc; margin-bottom: 5px; }
+        input, textarea {
+            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.08); color: #fff; font-size: 13px; outline: none; margin-bottom: 12px;
+        }
+        input:focus, textarea:focus { border-color: #f5576c; }
+        textarea { font-family: monospace; font-size: 11px; resize: vertical; }
+        button {
+            width: 100%; padding: 12px; border-radius: 10px; border: none;
+            font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.3s;
+        }
+        button:hover { transform: scale(1.02); }
+        .btn-primary { background: linear-gradient(135deg, #f093fb, #f5576c); color: #fff; }
+        .btn-success { background: linear-gradient(135deg, #43e97b, #38f9d7); color: #222; }
+        .btn-info { background: linear-gradient(135deg, #4facfe, #00f2fe); color: #fff; }
+        .server-status {
+            display: flex; align-items: center; gap: 8px; justify-content: center;
+            padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 15px;
+        }
+        .status-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #f5576c; display: inline-block;
+        }
+        .status-dot.online { background: #43e97b; }
+        .msg { margin-top: 8px; font-size: 13px; min-height: 24px; }
+        .msg.success { color: #43e97b; }
+        .msg.error { color: #f5576c; }
+        .code-box {
+            font-size: 36px; font-weight: bold; text-align: center; letter-spacing: 10px;
+            padding: 20px; background: rgba(15,12,41,0.9); border: 3px solid #43e97b;
+            border-radius: 12px; margin: 10px 0;
+        }
+        .step { font-size: 12px; color: #888; margin: 5px 0; }
+        .result-data {
+            width: 100%; margin-top: 8px; padding: 8px; border-radius: 6px;
+            background: rgba(255,255,255,0.08); color: #fff; font-size: 11px;
+            border: 1px solid rgba(255,255,255,0.2); resize: none;
+        }
+        .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #555; }
+        .footer a { color: #4facfe; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🐱📦</h1>
+    <h2>ระบบกู้คืนข้อมูล 6 หลัก (เซิร์ฟเวอร์)</h2>
+    
+    <div class="server-status" id="server-status">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">กำลังตรวจสอบเซิร์ฟเวอร์...</span>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="export" onclick="switchTab('export')">📤 ส่งออก</div>
+        <div class="tab" data-tab="import" onclick="switchTab('import')">📥 นำเข้า</div>
+    </div>
+
+    <!-- TAB: ส่งออก -->
+    <div class="section active" id="tab-export">
+        <label>🔑 อีเมลที่ใช้ในเกม</label>
+        <input type="text" id="exp-email" placeholder="กรอกอีเมลของคุณ...">
+
+        <label>📋 ข้อความกู้คืนจากเกม</label>
+        <textarea id="exp-data" rows="4" placeholder="ไปที่เกม (TowerDefense.html) → กด 📋 ส่งออก → คัดลอกข้อความ → วางที่นี่..."></textarea>
+        
+        <button class="btn-primary" onclick="exportToServer()">🔐 สร้างรหัสกู้คืน 6 หลัก</button>
+        <div class="msg" id="exp-msg"></div>
+        
+        <div id="exp-result" style="display:none;">
+            <p style="color:#aaa;font-size:13px;text-align:center;margin-top:10px;">✨ รหัสกู้คืนของคุณ:</p>
+            <div class="code-box" id="exp-code"></div>
+            <p style="color:#888;font-size:11px;text-align:center;">รหัสนี้ใช้ได้ 30 วัน • ใช้ครั้งเดียว</p>
+            <p class="step">📌 ไปที่เครื่องอื่น → เปิด oo.html → แท็บ "นำเข้า" → กรอกรหัส 6 ตัวนี้</p>
+        </div>
+    </div>
+
+    <!-- TAB: นำเข้า -->
+    <div class="section" id="tab-import">
+        <label>🔢 รหัสกู้คืน 6 หลัก</label>
+        <input type="text" id="imp-code" maxlength="6" placeholder="XXXXXX" style="text-transform:uppercase;letter-spacing:6px;font-size:24px;text-align:center;">
+        
+        <button class="btn-success" onclick="importFromServer()">📦 กู้คืนข้อมูล</button>
+        <div class="msg" id="imp-msg"></div>
+
+        <div id="imp-result" style="display:none;margin-top:10px;">
+            <label>✅ กู้คืนสำเร็จ! คัดลอกข้อความนี้</label>
+            <textarea class="result-data" id="imp-data" rows="3" readonly></textarea>
+            <button class="btn-info" onclick="copyImportResult()">📋 คัดลอกข้อความ</button>
+            <p class="step">📌 ไปที่เกม (TowerDefense.html) → หน้า Login → วางข้อความนี้ในช่อง "รหัสกู้คืน" → กดนำเข้า</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        ⚡ รันเซิร์ฟเวอร์ด้วย: <code>node server.js</code><br>
+        🔗 เปิดเซิร์ฟเวอร์: <a href="http://localhost:3000" target="_blank">http://localhost:3000</a>
+    </div>
+</div>
+
+<script>
+const SERVER_URL = 'http://localhost:3000';
+
+// ตรวจสอบสถานะเซิร์ฟเวอร์
+async function checkServer() {
+    const dot = document.getElementById('status-dot');
+    const text = document.getElementById('status-text');
+    try {
+        const res = await fetch(SERVER_URL, { method: 'GET', mode: 'no-cors' });
+        dot.className = 'status-dot online';
+        text.textContent = '✅ เซิร์ฟเวอร์กำลังทำงาน (localhost:3000)';
+    } catch(e) {
+        dot.className = 'status-dot';
+        text.textContent = '❌ เซิร์ฟเวอร์ไม่ทำงาน - รัน "node server.js" ก่อน';
+    }
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+}
+
+async function exportToServer() {
+    const email = document.getElementById('exp-email').value.trim();
+    const dataStr = document.getElementById('exp-data').value.trim();
+    const msgEl = document.getElementById('exp-msg');
+    const resultEl = document.getElementById('exp-result');
+    
+    if (!email) { msgEl.innerHTML = '❌ กรุณากรอกอีเมล'; msgEl.className = 'msg error'; return; }
+    if (!dataStr) { msgEl.innerHTML = '❌ กรุณาวางข้อความกู้คืนจากเกม'; msgEl.className = 'msg error'; return; }
+    
+    try {
+        // ถอดรหัส base64 เพื่อตรวจสอบความถูกต้อง
+        const decoded = JSON.parse(decodeURIComponent(escape(atob(dataStr))));
+        
+        const res = await fetch(SERVER_URL + '/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, data: decoded })
+        });
+        const result = await res.json();
+        
+        if (result.success) {
+            msgEl.innerHTML = '✅ สร้างรหัสกู้คืนสำเร็จ!';
+            msgEl.className = 'msg success';
+            document.getElementById('exp-code').textContent = result.code;
+            resultEl.style.display = 'block';
+        } else {
+            msgEl.innerHTML = '❌ ' + (result.error || 'เกิดข้อผิดพลาด');
+            msgEl.className = 'msg error';
+        }
+    } catch(e) {
+        msgEl.innerHTML = '❌ ข้อความกู้คืนไม่ถูกต้อง (ตรวจสอบว่าคัดลอกครบหรือไม่)';
+        msgEl.className = 'msg error';
+    }
+}
+
+async function importFromServer() {
+    const code = document.getElementById('imp-code').value.trim().toUpperCase();
+    const msgEl = document.getElementById('imp-msg');
+    const resultEl = document.getElementById('imp-result');
+    
+    if (!code || code.length !== 6) {
+        msgEl.innerHTML = '❌ กรุณากรอกรหัส 6 ตัวอักษร';
+        msgEl.className = 'msg error';
+        return;
+    }
+    
+    const res = await fetch(SERVER_URL + '/load', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+    });
+    const result = await res.json();
+    
+    if (result.success) {
+        msgEl.innerHTML = '✅ กู้คืนสำเร็จ!';
+        msgEl.className = 'msg success';
+        // เข้ารหัสกลับเป็น base64 สำหรับวางในเกม
+        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify({email: result.email, data: result.data}))));
+        document.getElementById('imp-data').value = encoded;
+        resultEl.style.display = 'block';
+    } else {
+        msgEl.innerHTML = '❌ ' + (result.error || 'รหัสไม่ถูกต้อง');
+        msgEl.className = 'msg error';
+        resultEl.style.display = 'none';
+    }
+}
+
+function copyImportResult() {
+    const ta = document.getElementById('imp-data');
+    ta.select();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(ta.value).then(() => alert('✅ คัดลอกข้อความกู้คืนเรียบร้อย!'));
+    } else {
+        document.execCommand('copy');
+        alert('✅ คัดลอกข้อความกู้คืนเรียบร้อย!');
+    }
+}
+
+// ตรวจสอบเซิร์ฟเวอร์เมื่อโหลดหน้า
+setTimeout(checkServer, 500);
+</script>
+</body>
+</html>
